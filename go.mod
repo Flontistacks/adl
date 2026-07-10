@@ -1,4 +1,4 @@
-module github.com/gertvanduijn/adl
+module github.com/Flontistacks/adl
 
 go 1.26.5
 

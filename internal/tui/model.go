@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gertvanduijn/adl/internal/aria2"
-	"github.com/gertvanduijn/adl/internal/config"
-	"github.com/gertvanduijn/adl/internal/download"
+	"github.com/Flontistacks/adl/internal/aria2"
+	"github.com/Flontistacks/adl/internal/config"
+	"github.com/Flontistacks/adl/internal/download"
 )
 
 type Screen int

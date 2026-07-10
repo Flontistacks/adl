@@ -13,12 +13,15 @@ workspace:
     - choice: wide
       items_count: 7
       timestamp: "2026-07-08T21:11:00Z"
+    - choice: batch
+      items_count: 2
+      timestamp: "2026-07-10T21:48:00Z"
   scanned_at: "2026-07-08T21:08:00Z"
 
 intents:
   - id: adl-terminal-downloader
     title: "adl Terminal Downloader"
-    status: in_progress
+    status: completed
     work_items:
       - id: project-scaffold
         title: Project Scaffold
@@ -61,6 +64,16 @@ intents:
         complexity: low
         mode: autopilot
         depends_on: [tui-shell-menu, config-module]
+      - id: homebrew-formula
+        title: Homebrew Formula
+        status: completed
+        complexity: medium
+        mode: confirm
+      - id: man-page
+        title: Man Page
+        status: completed
+        complexity: low
+        mode: autopilot
 
 runs:
   active: []
@@ -83,3 +96,11 @@ runs:
         - id: settings-help-views
           intent: adl-terminal-downloader
       completed: "2026-07-08T21:25:00Z"
+    - id: run-adl-2026-002
+      scope: batch
+      work_items:
+        - id: homebrew-formula
+          intent: adl-terminal-downloader
+        - id: man-page
+          intent: adl-terminal-downloader
+      completed: "2026-07-10T21:51:00Z"

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gertvanduijn/adl/internal/aria2"
-	"github.com/gertvanduijn/adl/internal/config"
-	"github.com/gertvanduijn/adl/internal/tui"
+	"github.com/Flontistacks/adl/internal/aria2"
+	"github.com/Flontistacks/adl/internal/config"
+	"github.com/Flontistacks/adl/internal/tui"
 	"github.com/spf13/cobra"
 )
 

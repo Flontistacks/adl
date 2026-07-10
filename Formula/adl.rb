@@ -1,18 +1,17 @@
 # typed: false
 # frozen_string_literal: true
 
-# Local development formula — install from this repo checkout:
-#   brew install --HEAD ./Formula/adl.rb
-#
-# Requires a git repository (run `git init && git add . && git commit` first).
+# Install from this repo:
+#   brew tap Flontistacks/adl https://github.com/Flontistacks/adl
+#   brew install --HEAD Flontistacks/adl/adl
 
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"
-  homepage "https://github.com/gertvanduijn/adl"
+  homepage "https://github.com/Flontistacks/adl"
   license "MIT"
   version "0.1.0"
 
-  head Pathname(__FILE__).realpath.dirname.parent.to_s, branch: "main", using: :git
+  head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
 
   depends_on "go" => :build
   depends_on "aria2"

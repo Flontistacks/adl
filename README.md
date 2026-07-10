@@ -20,13 +20,14 @@ make build
 ### Homebrew (recommended)
 
 ```bash
-# From local checkout (git repo required)
-git init && git add . && git commit -m "Initial commit"
-brew install --HEAD ./Formula/adl.rb
+brew tap Flontistacks/adl https://github.com/Flontistacks/adl
+brew install --HEAD Flontistacks/adl/adl
+```
 
-# After publishing tap to GitHub
-brew tap gertvanduijn/tap
-brew install adl
+After a release tag (`v0.1.0`):
+
+```bash
+brew install Flontistacks/adl/adl
 ```
 
 Installs `adl` and `man adl`.

@@ -1,33 +1,22 @@
 # Homebrew Tap for adl
 
-Install `adl` via Homebrew once this tap is published on GitHub.
+Install `adl` via Homebrew from [Flontistacks/adl](https://github.com/Flontistacks/adl).
 
-## Setup (one-time)
-
-Push this repository to GitHub, then create a separate tap repo:
+## Install (HEAD — latest main)
 
 ```bash
-# Option A: dedicated tap repository (recommended)
-# Create github.com/gertvanduijn/homebrew-tap and copy Formula/adl.rb there
-
-# Option B: use the homebrew-tap/ folder in this repo as a tap
-brew tap gertvanduijn/tap https://github.com/gertvanduijn/homebrew-tap
-brew install adl
+brew tap Flontistacks/adl https://github.com/Flontistacks/adl
+brew install --HEAD Flontistacks/adl/adl
 ```
 
-## Install from local checkout (before publishing)
-
-From the project root, with git initialized:
+## Install (stable — after tagging a release)
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit"
-
-brew install --HEAD ./Formula/adl.rb
+brew tap Flontistacks/adl https://github.com/Flontistacks/adl
+brew install Flontistacks/adl/adl
 ```
 
-This installs:
+## What gets installed
 
 - `adl` → `$(brew --prefix)/bin/adl`
 - man page → `$(brew --prefix)/share/man/man1/adl.1`
@@ -39,9 +28,14 @@ Run `man adl` after install.
 - `aria2` (runtime) — installed automatically
 - `go` (build only)
 
-## Release checklist
+## Separate tap repository (optional)
 
-1. Tag `v0.1.0` on GitHub
-2. Compute SHA256: `curl -L https://github.com/gertvanduijn/adl/archive/refs/tags/v0.1.0.tar.gz | shasum -a 256`
-3. Update `sha256` in `homebrew-tap/Formula/adl.rb`
-4. Push to tap repository
+To publish as `brew tap Flontistacks/tap`:
+
+1. Create `github.com/Flontistacks/homebrew-tap`
+2. Copy `Formula/adl.rb` into that repo
+3. Tag `v0.1.0` on the main repo and update `sha256` in the formula
+
+```bash
+curl -L https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.0.tar.gz | shasum -a 256
+```

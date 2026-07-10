@@ -3,7 +3,7 @@
 
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"
-  homepage "https://github.com/gertvanduijn/adl"
+  homepage "https://github.com/Flontistacks/adl"
   license "MIT"
   version "0.1.0"
 
@@ -12,9 +12,9 @@ class Adl < Formula
 
   on_macos do
     if build.head?
-      head "https://github.com/gertvanduijn/adl.git", branch: "main", using: :git
+      head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
     else
-      url "https://github.com/gertvanduijn/adl/archive/refs/tags/v#{version}.tar.gz"
+      url "https://github.com/Flontistacks/adl/archive/refs/tags/v#{version}.tar.gz"
       sha256 "UPDATE_SHA256_AFTER_FIRST_RELEASE"
     end
   end
