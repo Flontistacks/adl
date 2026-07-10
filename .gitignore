@@ -2,3 +2,8 @@
 /adl.exe
 *.test
 .DS_Store
+
+# Local dev / AI tooling (not for distribution)
+.cursor/
+.specsmd/
+.specs-fire/

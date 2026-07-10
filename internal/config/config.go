@@ -17,7 +17,6 @@ type Config struct {
 	DownloadDir string `yaml:"download_dir"`
 	Aria2Path   string `yaml:"aria2_path"`
 	RPCPort     int    `yaml:"rpc_port"`
-	RPCSecret   string `yaml:"rpc_secret"`
 }
 
 func Default() Config {
@@ -28,7 +27,6 @@ func Default() Config {
 		DownloadDir: downloads,
 		Aria2Path:   aria2,
 		RPCPort:     6800,
-		RPCSecret:   "",
 	}
 }
 
@@ -80,7 +78,7 @@ func Save(cfg Config) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o644)
+	return os.WriteFile(path, data, 0o600)
 }
 
 func lookPath(name string) (string, error) {

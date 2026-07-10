@@ -1,6 +1,8 @@
 package aria2
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,20 +14,29 @@ type Daemon struct {
 	client *Client
 }
 
-func Start(binary string, port int, secret string, downloadDir string) (*Daemon, error) {
+func sessionSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate rpc secret: %w", err)
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func Start(binary string, port int, downloadDir string) (*Daemon, error) {
 	if binary == "" {
 		return nil, fmt.Errorf("aria2c not found; install with: brew install aria2")
+	}
+	secret, err := sessionSecret()
+	if err != nil {
+		return nil, err
 	}
 	args := []string{
 		"--enable-rpc",
 		"--rpc-listen-all=false",
-		"--rpc-allow-origin-all=true",
 		fmt.Sprintf("--dir=%s", downloadDir),
 		"--quiet=true",
 		fmt.Sprintf("--rpc-listen-port=%d", port),
-	}
-	if secret != "" {
-		args = append(args, "--rpc-secret="+secret)
+		"--rpc-secret=" + secret,
 	}
 	cmd := exec.Command(binary, args...)
 	cmd.Stdout = os.Stderr

@@ -613,7 +613,7 @@ esc back`)
 }
 
 func Run(cfg config.Config, start StartView) error {
-	daemon, err := aria2.Start(cfg.Aria2Path, cfg.RPCPort, cfg.RPCSecret, cfg.DownloadDir)
+	daemon, err := aria2.Start(cfg.Aria2Path, cfg.RPCPort, cfg.DownloadDir)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ class Adl < Formula
   url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "4518bedf13dc1bd1b93970beffd7269047e2d2496767ed28f327e70d75bf5286"
   license "MIT"
-  version "0.1.0"
+  version "0.1.1"
 
   head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
 

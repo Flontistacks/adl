@@ -33,7 +33,7 @@ func TestRPCGetVersionIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test")
 	}
-	d, err := Start("aria2c", 16802, "", t.TempDir())
+	d, err := Start("aria2c", 16802, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
