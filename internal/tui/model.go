@@ -233,12 +233,9 @@ func (m Model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.menuIndex < len(mainMenuEntries)-1 {
 			m.menuIndex++
 		}
-	case "q":
-		item := mainMenuEntries[m.menuIndex]
-		if item.quit {
-			m.cleanup()
-			return m, tea.Quit
-		}
+	case "q", "Q":
+		m.cleanup()
+		return m, tea.Quit
 	case "enter", " ":
 		item := mainMenuEntries[m.menuIndex]
 		if item.quit {
