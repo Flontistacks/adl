@@ -1,0 +1,85 @@
+project:
+  name: adl
+  description: Terminal download manager wrapping aria2c with a Mole-style TUI
+  created: "2026-07-08T21:08:00Z"
+  fire_version: "0.1.8"
+
+workspace:
+  type: greenfield
+  structure: monolith
+  autonomy_bias: balanced
+  run_scope_preference: wide
+  run_scope_history:
+    - choice: wide
+      items_count: 7
+      timestamp: "2026-07-08T21:11:00Z"
+  scanned_at: "2026-07-08T21:08:00Z"
+
+intents:
+  - id: adl-terminal-downloader
+    title: "adl Terminal Downloader"
+    status: in_progress
+    work_items:
+      - id: project-scaffold
+        title: Project Scaffold
+        status: completed
+        complexity: medium
+        mode: confirm
+      - id: config-module
+        title: Config Module
+        status: completed
+        complexity: low
+        mode: autopilot
+        depends_on: [project-scaffold]
+      - id: aria2-rpc-lifecycle
+        title: aria2 RPC Lifecycle
+        status: completed
+        complexity: medium
+        mode: confirm
+        depends_on: [project-scaffold]
+      - id: tui-shell-menu
+        title: TUI Shell and Main Menu
+        status: completed
+        complexity: medium
+        mode: confirm
+        depends_on: [project-scaffold]
+      - id: new-download-flow
+        title: New Download Flow
+        status: completed
+        complexity: medium
+        mode: confirm
+        depends_on: [aria2-rpc-lifecycle, tui-shell-menu, config-module]
+      - id: active-downloads-view
+        title: Active Downloads View
+        status: completed
+        complexity: medium
+        mode: confirm
+        depends_on: [aria2-rpc-lifecycle, tui-shell-menu]
+      - id: settings-help-views
+        title: Settings and Help Views
+        status: completed
+        complexity: low
+        mode: autopilot
+        depends_on: [tui-shell-menu, config-module]
+
+runs:
+  active: []
+  completed:
+    - id: run-adl-2026-001
+      scope: wide
+      work_items:
+        - id: project-scaffold
+          intent: adl-terminal-downloader
+        - id: config-module
+          intent: adl-terminal-downloader
+        - id: aria2-rpc-lifecycle
+          intent: adl-terminal-downloader
+        - id: tui-shell-menu
+          intent: adl-terminal-downloader
+        - id: new-download-flow
+          intent: adl-terminal-downloader
+        - id: active-downloads-view
+          intent: adl-terminal-downloader
+        - id: settings-help-views
+          intent: adl-terminal-downloader
+      completed: "2026-07-08T21:25:00Z"

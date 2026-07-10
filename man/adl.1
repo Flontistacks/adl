@@ -1,0 +1,129 @@
+.\" adl man page
+.Dd July 10, 2026
+.Dt ADL 1
+.Os
+.Sh NAME
+.Nm adl
+.Nd terminal download manager powered by aria2c
+.Sh SYNOPSIS
+.Nm adl
+.Op Ar command
+.Sh DESCRIPTION
+.Nm
+is a Mole-style terminal user interface for managing downloads via
+.Xr aria2c 1 .
+It runs entirely in the terminal: no GUI windows, menu bar icons, or browser.
+.Pp
+When started,
+.Nm
+launches a local
+.Xr aria2c 1
+RPC daemon for the duration of the session.
+Downloads stop being managed when you quit
+.Nm ;
+the daemon is shut down and no background process remains.
+.Pp
+Supported download sources:
+.Bl -bullet -compact
+.It
+HTTP and HTTPS URLs
+.It
+Magnet links
+.It
+Local
+.Pa .torrent
+files
+.El
+.Sh COMMANDS
+.Bl -tag -width Ds
+.It Cm adl
+Open the interactive main menu.
+.It Cm adl Cm download
+Skip the menu and go directly to the new download flow.
+.It Cm adl Cm list
+Show active downloads with live progress bars.
+.It Cm adl Cm settings
+Open settings (default download folder, aria2c path).
+.El
+.Sh INTERACTIVE UI
+.SS Main menu
+.Bl -tag -width Ds
+.It Sy \(ua\(da / \(ua\(dv
+Navigate menu items
+.It Sy Enter
+Select item
+.It Sy ?
+Show help
+.It Sy Ctrl+c
+Quit
+.El
+.SS New download
+.Bl -tag -width Ds
+.It Sy Enter
+Confirm current step (URL, then destination)
+.It Sy b
+Browse folders when choosing destination
+.It Sy Esc
+Return to main menu
+.El
+.Pp
+The destination defaults to
+.Pa ~/Downloads .
+Paste a URL, magnet link, or path to a
+.Pa .torrent
+file; the type is detected automatically.
+.SS Active downloads
+.Bl -tag -width Ds
+.It Sy j / k
+Select download
+.It Sy p
+Pause selected download
+.It Sy r
+Resume selected download
+.It Sy x
+Cancel selected download
+.It Sy Enter
+Show download details
+.It Sy Esc
+Return to main menu
+.El
+.Sh FILES
+.Bl -tag -width Pa
+.It Pa ~/.config/adl/config.yaml
+User configuration file.
+.El
+.Pp
+Example:
+.Bd -literal -offset indent
+download_dir: ~/Downloads
+aria2_path: /opt/homebrew/bin/aria2c
+rpc_port: 6800
+.Ed
+.Sh REQUIREMENTS
+.Bl -bullet -compact
+.It
+.Xr aria2c 1
+(managed via Homebrew:
+.Cm brew install aria2 )
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Start the main menu:
+.Bd -literal -offset indent
+adl
+.Ed
+.Pp
+Download a file directly:
+.Bd -literal -offset indent
+adl download
+.Ed
+.Pp
+View active downloads:
+.Bd -literal -offset indent
+adl list
+.Ed
+.Sh SEE ALSO
+.Xr aria2c 1
+.Sh AUTHORS
+.An Gert van Duijn

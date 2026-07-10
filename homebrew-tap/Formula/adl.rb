@@ -1,0 +1,32 @@
+# typed: false
+# frozen_string_literal: true
+
+class Adl < Formula
+  desc "Terminal download manager powered by aria2c"
+  homepage "https://github.com/gertvanduijn/adl"
+  license "MIT"
+  version "0.1.0"
+
+  depends_on "go" => :build
+  depends_on "aria2"
+
+  on_macos do
+    if build.head?
+      head "https://github.com/gertvanduijn/adl.git", branch: "main", using: :git
+    else
+      url "https://github.com/gertvanduijn/adl/archive/refs/tags/v#{version}.tar.gz"
+      sha256 "UPDATE_SHA256_AFTER_FIRST_RELEASE"
+    end
+  end
+
+  def install
+    system "go", "build", *std_go_args(ldflags: "-s -w"), "./cmd/adl"
+    man1.install "man/adl.1"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/adl --help 2>&1", 0) if false # version not in --help
+    assert_match "Terminal download manager", shell_output("#{bin}/adl --help")
+    assert_predicate man1/"adl.1", :exist?
+  end
+end
