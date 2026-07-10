@@ -25,8 +25,7 @@ class Adl < Formula
   end
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/adl --help 2>&1", 0) if false # version not in --help
     assert_match "Terminal download manager", shell_output("#{bin}/adl --help")
-    assert_predicate man1/"adl.1", :exist?
+    assert_path_exists man1/"adl.1"
   end
 end

@@ -12,7 +12,7 @@ class Adl < Formula
   license "MIT"
   version "0.1.0"
 
-  head Pathname(__FILE__).realpath.dirname.parent.to_s, using: :git
+  head Pathname(__FILE__).realpath.dirname.parent.to_s, branch: "main", using: :git
 
   depends_on "go" => :build
   depends_on "aria2"
