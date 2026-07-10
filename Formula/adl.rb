@@ -1,10 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-# Install from GitHub:
-#   brew tap Flontistacks/adl https://github.com/Flontistacks/adl
-#   brew install Flontistacks/adl/adl          # stable
-#   brew install --HEAD Flontistacks/adl/adl   # latest main
+# Install: brew install Flontistacks/tap/adl
+# Tap repo: https://github.com/Flontistacks/homebrew-tap
 
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"

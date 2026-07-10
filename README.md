@@ -19,18 +19,19 @@ make build
 
 ### Homebrew (recommended)
 
-```bash
-brew tap Flontistacks/adl https://github.com/Flontistacks/adl
-brew install --HEAD Flontistacks/adl/adl
-```
-
-After a release tag (`v0.1.0`):
+One command (like [Mole](https://github.com/tw93/Mole)):
 
 ```bash
-brew install Flontistacks/adl/adl
+brew install Flontistacks/tap/adl
 ```
 
-Installs `adl` and `man adl`.
+Latest from `main`:
+
+```bash
+brew install --HEAD Flontistacks/tap/adl
+```
+
+Installs `adl`, `man adl`, and the `aria2` dependency.
 
 ### Manual
 
