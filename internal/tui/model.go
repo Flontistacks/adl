@@ -36,15 +36,6 @@ const (
 	ViewSettings StartView = "settings"
 )
 
-type menuItem struct {
-	title, desc string
-	screen      Screen
-}
-
-func (i menuItem) Title() string       { return i.title }
-func (i menuItem) Description() string { return i.desc }
-func (i menuItem) FilterValue() string { return i.title }
-
 type tickMsg struct{}
 type downloadsMsg struct {
 	items []aria2.Status
@@ -60,71 +51,62 @@ type Model struct {
 	errMsg   string
 	status   string
 
-	menu     list.Model
-	urlInput textinput.Model
+	menuIndex int
+
+	urlInput  textinput.Model
 	destInput textinput.Model
-	newStep  int // 0=url, 1=dest
+	newStep   int // 0=url, 1=dest
 
 	browsing   bool
 	browseDir  string
 	browseList list.Model
 
-	downloads     []aria2.Status
-	selectedDL    int
-	detail          aria2.Status
-	showDetail      bool
+	downloads  []aria2.Status
+	selectedDL int
+	detail     aria2.Status
 
 	settingsDir   textinput.Model
 	settingsAria2 textinput.Model
 	settingsFocus int
 }
 
-var (
-	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205"))
-	helpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	errStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-	boxStyle   = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1)
-)
+func styleTextInput(ti *textinput.Model) {
+	green := lipgloss.NewStyle().Foreground(colorGreen)
+	ti.PromptStyle = green
+	ti.TextStyle = lipgloss.NewStyle().Foreground(colorWhite)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(colorGreen)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(colorMuted)
+}
 
 func NewModel(cfg config.Config, start StartView) Model {
-	menuItems := []list.Item{
-		menuItem{"New Download", "Add HTTP, magnet, or torrent", ScreenNewDownload},
-		menuItem{"Active Downloads", "Progress and controls", ScreenActive},
-		menuItem{"Settings", "Default folder and aria2c path", ScreenSettings},
-		menuItem{"Help", "Keybindings and commands", ScreenHelp},
-		menuItem{"Quit", "Stop daemon and exit", ScreenMenu},
-	}
-	delegate := list.NewDefaultDelegate()
-	l := list.New(menuItems, delegate, 0, 0)
-	l.Title = "adl"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-
 	url := textinput.New()
 	url.Placeholder = "https://... or magnet:?xt=... or /path/file.torrent"
 	url.CharLimit = 2048
 	url.Width = 60
 	url.Prompt = "URL: "
+	styleTextInput(&url)
 
 	dest := textinput.New()
 	dest.CharLimit = 512
 	dest.Width = 60
 	dest.Prompt = "Dest: "
+	styleTextInput(&dest)
 
 	sDir := textinput.New()
 	sDir.Prompt = "Download dir: "
 	sDir.Width = 50
 	sDir.SetValue(cfg.DownloadDir)
+	styleTextInput(&sDir)
 
 	sAria := textinput.New()
 	sAria.Prompt = "aria2c path: "
 	sAria.Width = 50
 	sAria.SetValue(cfg.Aria2Path)
+	styleTextInput(&sAria)
 
 	m := Model{
 		cfg:           cfg,
 		screen:        ScreenMenu,
-		menu:          l,
 		urlInput:      url,
 		destInput:     dest,
 		settingsDir:   sDir,
@@ -166,8 +148,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.menu.SetWidth(msg.Width - 4)
-		m.menu.SetHeight(msg.Height - 6)
 		return m, nil
 
 	case tea.KeyMsg:
@@ -191,8 +171,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch m.screen {
-	case ScreenMenu:
-		m.menu, cmd = m.menu.Update(msg)
 	case ScreenNewDownload:
 		if m.browsing {
 			m.browseList, cmd = m.browseList.Update(msg)
@@ -246,32 +224,45 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if msg.String() == "enter" || msg.String() == " " {
-		idx := m.menu.Index()
-		item := m.menu.Items()[idx].(menuItem)
-		switch item.title {
-		case "Quit":
+	switch msg.String() {
+	case "up", "k":
+		if m.menuIndex > 0 {
+			m.menuIndex--
+		}
+	case "down", "j":
+		if m.menuIndex < len(mainMenuEntries)-1 {
+			m.menuIndex++
+		}
+	case "q":
+		item := mainMenuEntries[m.menuIndex]
+		if item.quit {
 			m.cleanup()
 			return m, tea.Quit
-		case "New Download":
+		}
+	case "enter", " ":
+		item := mainMenuEntries[m.menuIndex]
+		if item.quit {
+			m.cleanup()
+			return m, tea.Quit
+		}
+		switch item.screen {
+		case ScreenNewDownload:
 			m.screen = ScreenNewDownload
 			m.newStep = 0
 			m.urlInput.Focus()
-		case "Active Downloads":
+		case ScreenActive:
 			m.screen = ScreenActive
 			m.selectedDL = 0
 			return m, m.fetchDownloads()
-		case "Settings":
+		case ScreenSettings:
 			m.screen = ScreenSettings
 			m.settingsFocus = 0
 			m.settingsDir.Focus()
-		case "Help":
+		case ScreenHelp:
 			m.screen = ScreenHelp
 		}
 	}
-	var cmd tea.Cmd
-	m.menu, cmd = m.menu.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) updateNewDownload(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -471,8 +462,12 @@ func (m *Model) refreshBrowse() {
 		}
 	}
 	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.Foreground(colorGreen)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.Foreground(colorMuted)
+	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.Foreground(colorWhite)
+	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.Foreground(colorMuted)
 	l := list.New(items, delegate, 50, 12)
-	l.Title = "Browse: " + m.browseDir
+	l.Title = sectionStyle.Render("Browse: " + m.browseDir)
 	l.SetShowStatusBar(false)
 	m.browseList = l
 }
@@ -498,73 +493,80 @@ func (m Model) View() string {
 		return "Loading...\n"
 	}
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("adl") + "\n\n")
+	b.WriteString(renderHeader())
 
 	switch m.screen {
 	case ScreenMenu:
-		b.WriteString(m.menu.View())
-		b.WriteString("\n" + helpStyle.Render("↑/↓ navigate  enter select  ? help  ctrl+c quit"))
+		b.WriteString(m.viewMenu())
 	case ScreenNewDownload:
+		b.WriteString("\n")
 		b.WriteString(m.viewNewDownload())
 	case ScreenActive:
+		b.WriteString("\n")
 		b.WriteString(m.viewActive())
 	case ScreenSettings:
+		b.WriteString("\n")
 		b.WriteString(m.viewSettings())
 	case ScreenHelp:
+		b.WriteString("\n")
 		b.WriteString(m.viewHelp())
 	case ScreenDetail:
+		b.WriteString("\n")
 		b.WriteString(m.viewDetail())
 	}
 
 	if m.errMsg != "" {
 		b.WriteString("\n" + errStyle.Render(m.errMsg))
 	} else if m.status != "" {
-		b.WriteString("\n" + helpStyle.Render(m.status))
+		b.WriteString("\n" + okStyle.Render(m.status))
 	}
 	return b.String()
 }
 
 func (m Model) viewNewDownload() string {
 	var b strings.Builder
-	b.WriteString("New Download\n\n")
+	b.WriteString(sectionStyle.Render("New Download") + "\n\n")
 	if m.browsing {
 		b.WriteString(m.browseList.View())
-		b.WriteString("\n" + helpStyle.Render("enter open  space select folder  esc back"))
+		b.WriteString("\n" + renderFooter("Enter", "open", "Space", "select", "Esc", "back"))
 		return b.String()
 	}
 	if m.newStep == 0 {
 		b.WriteString(m.urlInput.View())
-		b.WriteString("\n\n" + helpStyle.Render("enter next  esc menu"))
+		b.WriteString("\n\n" + renderFooter("Enter", "next", "Esc", "menu"))
 	} else {
-		b.WriteString("URL: " + m.urlInput.Value() + "\n\n")
+		b.WriteString(helpStyle.Render("URL: ") + m.urlInput.Value() + "\n\n")
 		b.WriteString(m.destInput.View())
-		b.WriteString("\n\n" + helpStyle.Render("b browse  enter start  esc menu"))
+		b.WriteString("\n\n" + renderFooter("B", "browse", "Enter", "start", "Esc", "menu"))
 	}
 	return b.String()
 }
 
 func (m Model) viewActive() string {
 	var b strings.Builder
-	b.WriteString("Active Downloads\n\n")
+	b.WriteString(sectionStyle.Render("Active Downloads") + "\n\n")
 	if len(m.downloads) == 0 {
-		b.WriteString(helpStyle.Render("No active downloads.\n"))
+		b.WriteString(helpStyle.Render("No active downloads.") + "\n")
 	} else {
 		for i, d := range m.downloads {
 			prefix := "  "
 			if i == m.selectedDL {
-				prefix = "> "
+				prefix = cursorStyle.Render(">") + " "
 			}
 			name := filepath.Base(d.Name)
 			if name == "" {
 				name = d.GID
 			}
-			bar := aria2.ProgressBar(d.Completed, d.Total, 24)
-			line := fmt.Sprintf("%s%s\n   %s  %s  ETA %s  [%s]\n",
-				prefix, name, bar, aria2.FormatSpeed(d.Speed), aria2.FormatETA(d.ETA), d.Status)
+			if i == m.selectedDL {
+				name = menuActive.Render(name)
+			}
+			bar := aria2.ProgressBar(d.Completed, d.Total, 20)
+			line := fmt.Sprintf("%s%s\n    %s  %s  ETA %s  %s\n",
+				prefix, name, bar, aria2.FormatSpeed(d.Speed), aria2.FormatETA(d.ETA), menuDescStyle.Render("["+d.Status+"]"))
 			b.WriteString(line)
 		}
 	}
-	b.WriteString("\n" + helpStyle.Render("j/k select  p pause  r resume  x cancel  enter details  esc menu"))
+	b.WriteString("\n" + renderFooter("J/K", "select", "P", "pause", "R", "resume", "X", "cancel", "Enter", "details", "Esc", "menu"))
 	return b.String()
 }
 
@@ -580,36 +582,26 @@ func (m Model) viewDetail() string {
 
 func (m Model) viewSettings() string {
 	var b strings.Builder
-	b.WriteString("Settings\n\n")
+	b.WriteString(sectionStyle.Render("Settings") + "\n\n")
 	b.WriteString(m.settingsDir.View() + "\n")
 	b.WriteString(m.settingsAria2.View() + "\n")
-	b.WriteString("\n" + helpStyle.Render("tab switch  enter save  esc menu"))
+	b.WriteString("\n" + renderFooter("Tab", "switch", "Enter", "save", "Esc", "menu"))
 	return b.String()
 }
 
 func (m Model) viewHelp() string {
-	return boxStyle.Render(`adl — terminal download manager
+	body := sectionStyle.Render("Help") + `
 
-Commands:
   adl              Main menu
   adl download     New download
   adl list         Active downloads
   adl settings     Settings
 
-Main menu:
-  ↑/↓ navigate   enter select   ? help   ctrl+c quit
+  Config: ~/.config/adl/config.yaml
+  Requires: aria2c (brew install aria2)
 
-New download:
-  Paste URL, magnet, or .torrent path
-  b browse folders   enter confirm
-
-Active downloads:
-  p pause   r resume   x cancel   enter details
-
-Config: ~/.config/adl/config.yaml
-Requires: aria2c (brew install aria2)
-
-esc back`)
+` + renderFooter("Esc", "back")
+	return boxStyle.Render(body)
 }
 
 func Run(cfg config.Config, start StartView) error {
