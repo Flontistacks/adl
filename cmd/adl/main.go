@@ -21,7 +21,7 @@ func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "adl",
 		Short: "Terminal download manager powered by aria2c",
-		Long: `adl is a Mole-style terminal UI for managing downloads via aria2c.
+		Long: `adl is a terminal UI for managing downloads via aria2c.
 
 Run without arguments to open the main menu, or use subcommands for direct access.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
