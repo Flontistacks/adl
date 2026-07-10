@@ -1,13 +1,16 @@
 # typed: false
 # frozen_string_literal: true
 
-# Install from this repo:
+# Install from GitHub:
 #   brew tap Flontistacks/adl https://github.com/Flontistacks/adl
-#   brew install --HEAD Flontistacks/adl/adl
+#   brew install Flontistacks/adl/adl          # stable
+#   brew install --HEAD Flontistacks/adl/adl   # latest main
 
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"
   homepage "https://github.com/Flontistacks/adl"
+  url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.0.tar.gz"
+  sha256 "4518bedf13dc1bd1b93970beffd7269047e2d2496767ed28f327e70d75bf5286"
   license "MIT"
   version "0.1.0"
 

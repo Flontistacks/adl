@@ -15,7 +15,7 @@ class Adl < Formula
       head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
     else
       url "https://github.com/Flontistacks/adl/archive/refs/tags/v#{version}.tar.gz"
-      sha256 "UPDATE_SHA256_AFTER_FIRST_RELEASE"
+      sha256 "4518bedf13dc1bd1b93970beffd7269047e2d2496767ed28f327e70d75bf5286"
     end
   end
 
