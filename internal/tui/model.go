@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Flontistacks/adl/internal/aria2"
+	"github.com/Flontistacks/adl/internal/config"
+	"github.com/Flontistacks/adl/internal/download"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/Flontistacks/adl/internal/aria2"
-	"github.com/Flontistacks/adl/internal/config"
-	"github.com/Flontistacks/adl/internal/download"
 )
 
 type Screen int
@@ -43,13 +43,13 @@ type downloadsMsg struct {
 }
 
 type Model struct {
-	cfg      config.Config
-	daemon   *aria2.Daemon
-	screen   Screen
-	width    int
-	height   int
-	errMsg   string
-	status   string
+	cfg    config.Config
+	daemon *aria2.Daemon
+	screen Screen
+	width  int
+	height int
+	errMsg string
+	status string
 
 	menuIndex int
 
@@ -490,25 +490,19 @@ func (m Model) View() string {
 		return "Loading...\n"
 	}
 	var b strings.Builder
-	b.WriteString(renderHeader())
 
 	switch m.screen {
 	case ScreenMenu:
 		b.WriteString(m.viewMenu())
 	case ScreenNewDownload:
-		b.WriteString("\n")
 		b.WriteString(m.viewNewDownload())
 	case ScreenActive:
-		b.WriteString("\n")
 		b.WriteString(m.viewActive())
 	case ScreenSettings:
-		b.WriteString("\n")
 		b.WriteString(m.viewSettings())
 	case ScreenHelp:
-		b.WriteString("\n")
 		b.WriteString(m.viewHelp())
 	case ScreenDetail:
-		b.WriteString("\n")
 		b.WriteString(m.viewDetail())
 	}
 

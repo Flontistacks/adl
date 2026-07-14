@@ -23,6 +23,7 @@ var mainMenuEntries = []menuEntry{
 func (m Model) viewMenu() string {
 	const titleWidth = 22
 	var b strings.Builder
+	b.WriteString(renderHeader())
 	b.WriteString("\n")
 
 	for i, item := range mainMenuEntries {
