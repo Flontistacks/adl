@@ -20,7 +20,7 @@ class Adl < Formula
   end
 
   test do
-    assert_match "Terminal download manager", shell_output("#{bin}/adl --help")
+    assert_match "terminal UI for managing downloads", shell_output("#{bin}/adl --help")
     assert_path_exists man1/"adl.1"
   end
 end
