@@ -7,8 +7,8 @@
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"
   homepage "https://github.com/Flontistacks/adl"
-  url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.6.tar.gz"
-  sha256 "8ee0b65ce0863be62c2eb3e3dfbeba5782478a99f1cb1e7ef871ab3c733396f8"
+  url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.7.tar.gz"
+  sha256 "f68d82a66be0949c8f185625c62b59791bf2bb6fee42528de4f81439499b5528"
   license "MIT"
 
   head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
