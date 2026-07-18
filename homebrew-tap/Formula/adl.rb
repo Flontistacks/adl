@@ -4,10 +4,10 @@
 class Adl < Formula
   desc "Terminal download manager powered by aria2c"
   homepage "https://github.com/Flontistacks/adl"
-  url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.4.tar.gz"
-  sha256 "9ffe439172d60f600ccb0cfda5833dd2cbb19c52217baa4edd63f5465fcef24c"
+  url "https://github.com/Flontistacks/adl/archive/refs/tags/v0.1.5.tar.gz"
+  version "0.1.5"
+  sha256 "3ef1f7dccc19d4a8f3e30abaea01c05c599faa2a73e5e37825c567d0667d9164"
   license "MIT"
-  version "0.1.4"
 
   head "https://github.com/Flontistacks/adl.git", branch: "main", using: :git
 
