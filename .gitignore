@@ -3,8 +3,11 @@
 *.test
 .DS_Store
 
+scripts/.DS_Store
+scripts/adl
+scripts/adl.app/
+
 # Local dev / AI tooling (not for distribution)
 .cursor/
 .specsmd/
 .specs-fire/
-scripts/

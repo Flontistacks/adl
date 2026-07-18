@@ -69,6 +69,9 @@ func (c *Client) call(method string, params ...any) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("aria2 RPC returned HTTP %s", resp.Status)
+	}
 	var rpcResp rpcResponse
 	if err := json.Unmarshal(body, &rpcResp); err != nil {
 		return nil, err
@@ -121,11 +124,58 @@ type Status struct {
 	Dir       string
 }
 
+var statusKeys = []string{
+	"gid",
+	"status",
+	"totalLength",
+	"completedLength",
+	"downloadSpeed",
+	"dir",
+	"files",
+}
+
 func (c *Client) TellActive() ([]Status, error) {
-	result, err := c.call("aria2.tellActive")
+	result, err := c.call("aria2.tellActive", statusKeys)
 	if err != nil {
 		return nil, err
 	}
+	return parseStatuses(result)
+}
+
+func (c *Client) TellWaiting() ([]Status, error) {
+	result, err := c.call("aria2.tellWaiting", 0, 1000, statusKeys)
+	if err != nil {
+		return nil, err
+	}
+	return parseStatuses(result)
+}
+
+// TellDownloads returns both transferring and queued downloads. aria2 moves
+// paused downloads into the waiting queue, so querying only tellActive makes
+// them disappear before the user can resume them.
+func (c *Client) TellDownloads() ([]Status, error) {
+	active, err := c.TellActive()
+	if err != nil {
+		return nil, err
+	}
+	waiting, err := c.TellWaiting()
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{}, len(active)+len(waiting))
+	out := make([]Status, 0, len(active)+len(waiting))
+	for _, item := range append(active, waiting...) {
+		if _, ok := seen[item.GID]; ok {
+			continue
+		}
+		seen[item.GID] = struct{}{}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+func parseStatuses(result json.RawMessage) ([]Status, error) {
 	var raw []map[string]any
 	if err := json.Unmarshal(result, &raw); err != nil {
 		return nil, err

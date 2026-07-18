@@ -57,15 +57,12 @@ Run without arguments to open the main menu, or use subcommands for direct acces
 }
 
 func runTUI(view tui.StartView) error {
-	if err := aria2.CheckInstalled(); err != nil {
-		return err
-	}
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	if cfg.Aria2Path == "" {
-		return fmt.Errorf("aria2c not found. Install with: brew install aria2")
+	if err := aria2.CheckInstalled(cfg.Aria2Path); err != nil {
+		return err
 	}
 	return tui.Run(cfg, view)
 }

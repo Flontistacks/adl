@@ -35,7 +35,7 @@ brew untap flontistacks/adl
 ```bash
 adl              # open main menu
 adl download     # add a download directly
-adl list         # active downloads with progress bars
+adl list         # active, queued, and paused downloads
 adl settings     # default folder & aria2c path
 man adl          # full manual
 ```
@@ -120,6 +120,17 @@ You can also edit these from the in-app **Settings** screen.
 
 The aria2 RPC secret is generated per session and is **not** written to disk.
 
+## macOS app launcher
+
+The repository includes a small AppleScript launcher that opens `adl` in Terminal exactly as if you typed the command there. Build the app bundle with:
+
+```bash
+./scripts/build-app.sh
+cp -R scripts/adl.app /Applications/
+```
+
+The generated `scripts/adl.app` is intentionally not committed. It uses the `adl` command installed by Homebrew, so keep that installation up to date with `brew upgrade Flontistacks/tap/adl`.
+
 ## Security & privacy
 
 - **Local only** — aria2 RPC listens on `127.0.0.1` while `adl` is running
@@ -150,7 +161,7 @@ make install PREFIX=/opt/homebrew   # Apple Silicon
 make install PREFIX=/usr/local      # Intel Mac
 ```
 
-**Requirements for building:** Go 1.22+
+**Requirements for building:** Go 1.25+
 
 ## Project structure
 
@@ -163,6 +174,7 @@ internal/
   tui/            Bubble Tea views
 man/adl.1         Manual page
 Formula/          Homebrew formula (see tap repo)
+scripts/          Source for the optional macOS app launcher
 ```
 
 ## Related repositories

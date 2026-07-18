@@ -3,15 +3,19 @@ package aria2
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 )
 
 type Daemon struct {
-	cmd    *exec.Cmd
-	client *Client
+	cmd      *exec.Cmd
+	client   *Client
+	stopOnce sync.Once
+	stopErr  error
 }
 
 func sessionSecret() (string, error) {
@@ -67,10 +71,41 @@ func (d *Daemon) Client() *Client {
 }
 
 func (d *Daemon) Stop() error {
+	d.stopOnce.Do(func() {
+		d.stopErr = d.stop()
+	})
+	return d.stopErr
+}
+
+func (d *Daemon) stop() error {
 	if d.cmd == nil || d.cmd.Process == nil {
 		return nil
 	}
-	_ = d.cmd.Process.Kill()
-	_, _ = d.cmd.Process.Wait()
-	return nil
+
+	done := make(chan error, 1)
+	go func() {
+		done <- d.cmd.Wait()
+	}()
+
+	signalErr := d.cmd.Process.Signal(os.Interrupt)
+	if errors.Is(signalErr, os.ErrProcessDone) {
+		signalErr = nil
+	}
+
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		if signalErr != nil {
+			return fmt.Errorf("stop aria2c: %w", signalErr)
+		}
+		return nil
+	case <-timer.C:
+		if err := d.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			return fmt.Errorf("kill aria2c after shutdown timeout: %w", err)
+		}
+		<-done
+		return nil
+	}
 }

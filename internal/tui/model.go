@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Flontistacks/adl/internal/aria2"
 	"github.com/Flontistacks/adl/internal/config"
@@ -41,15 +42,21 @@ type downloadsMsg struct {
 	items []aria2.Status
 	err   error
 }
+type actionMsg struct {
+	success string
+	err     error
+}
 
 type Model struct {
-	cfg    config.Config
-	daemon *aria2.Daemon
-	screen Screen
-	width  int
-	height int
-	errMsg string
-	status string
+	cfg        config.Config
+	daemon     *aria2.Daemon
+	screen     Screen
+	width      int
+	height     int
+	errMsg     string
+	status     string
+	fetching   bool
+	helpReturn Screen
 
 	menuIndex int
 
@@ -148,22 +155,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if m.handleGlobalKeys(msg) {
-			return m, nil
+		msg = sanitizeKeyMsg(msg)
+		if handled, cmd := m.handleGlobalKeys(msg); handled {
+			return m, cmd
 		}
 		return m.updateKey(msg)
 
 	case tickMsg:
-		if m.daemon != nil && (m.screen == ScreenActive || m.screen == ScreenDetail) {
-			return m, m.fetchDownloads()
+		next := tickCmd()
+		if cmd := m.requestDownloads(); cmd != nil {
+			return m, tea.Batch(next, cmd)
 		}
-		return m, tickCmd()
+		return m, next
 
 	case downloadsMsg:
-		if msg.err == nil {
-			m.downloads = msg.items
+		m.fetching = false
+		if msg.err != nil {
+			m.errMsg = msg.err.Error()
+			return m, nil
 		}
-		return m, tickCmd()
+		m.errMsg = ""
+		m.downloads = msg.items
+		m.clampDownloadSelection()
+		m.refreshDetail()
+		return m, nil
+
+	case actionMsg:
+		if msg.err != nil {
+			m.errMsg = msg.err.Error()
+			m.status = ""
+		} else {
+			m.errMsg = ""
+			m.status = msg.success
+		}
+		return m, m.requestDownloads()
 	}
 
 	var cmd tea.Cmd
@@ -186,20 +211,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *Model) handleGlobalKeys(msg tea.KeyMsg) bool {
+func (m *Model) handleGlobalKeys(msg tea.KeyMsg) (bool, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c":
 		m.cleanup()
-		return true
+		return true, tea.Quit
 	case "?":
-		if m.screen != ScreenHelp {
+		switch m.screen {
+		case ScreenNewDownload, ScreenSettings:
+			return false, nil
+		case ScreenHelp:
+			m.screen = m.helpReturn
+		default:
+			m.helpReturn = m.screen
 			m.screen = ScreenHelp
-		} else {
-			m.screen = ScreenMenu
 		}
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
 func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -247,12 +276,13 @@ func (m Model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case ScreenActive:
 			m.screen = ScreenActive
 			m.selectedDL = 0
-			return m, m.fetchDownloads()
+			return m, m.requestDownloads()
 		case ScreenSettings:
 			m.screen = ScreenSettings
 			m.settingsFocus = 0
 			m.settingsDir.Focus()
 		case ScreenHelp:
+			m.helpReturn = ScreenMenu
 			m.screen = ScreenHelp
 		}
 	}
@@ -351,10 +381,11 @@ func (m Model) startDownload() (tea.Model, tea.Cmd) {
 	m.newStep = 0
 	m.screen = ScreenActive
 	m.selectedDL = 0
-	return m, m.fetchDownloads()
+	return m, m.requestDownloads()
 }
 
 func (m Model) updateActive(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	m.clampDownloadSelection()
 	switch msg.String() {
 	case "esc", "q":
 		m.screen = ScreenMenu
@@ -367,25 +398,30 @@ func (m Model) updateActive(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.selectedDL--
 		}
 	case "p":
-		if len(m.downloads) > 0 && m.daemon != nil {
-			_ = m.daemon.Client().Pause(m.downloads[m.selectedDL].GID)
+		if d, ok := m.selectedDownload(); ok && m.daemon != nil {
+			return m, downloadActionCmd("Download paused", func() error {
+				return m.daemon.Client().Pause(d.GID)
+			})
 		}
 	case "r":
-		if len(m.downloads) > 0 && m.daemon != nil {
-			_ = m.daemon.Client().Unpause(m.downloads[m.selectedDL].GID)
+		if d, ok := m.selectedDownload(); ok && m.daemon != nil {
+			return m, downloadActionCmd("Download resumed", func() error {
+				return m.daemon.Client().Unpause(d.GID)
+			})
 		}
 	case "x":
-		if len(m.downloads) > 0 && m.daemon != nil {
-			_ = m.daemon.Client().Remove(m.downloads[m.selectedDL].GID)
+		if d, ok := m.selectedDownload(); ok && m.daemon != nil {
+			return m, downloadActionCmd("Download cancelled", func() error {
+				return m.daemon.Client().Remove(d.GID)
+			})
 		}
-		return m, m.fetchDownloads()
 	case "enter":
-		if len(m.downloads) > 0 {
-			m.detail = m.downloads[m.selectedDL]
+		if d, ok := m.selectedDownload(); ok {
+			m.detail = d
 			m.screen = ScreenDetail
 		}
 	}
-	return m, m.fetchDownloads()
+	return m, nil
 }
 
 func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -432,23 +468,37 @@ func (m Model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateHelp(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "esc" || msg.String() == "q" || msg.String() == "enter" {
-		m.screen = ScreenMenu
+		m.screen = m.helpReturn
 	}
 	return m, nil
 }
 
-func (m *Model) fetchDownloads() tea.Cmd {
+func (m *Model) requestDownloads() tea.Cmd {
+	if m.daemon == nil || m.fetching || (m.screen != ScreenActive && m.screen != ScreenDetail) {
+		return nil
+	}
+	m.fetching = true
+	return m.fetchDownloads()
+}
+
+func (m Model) fetchDownloads() tea.Cmd {
 	return func() tea.Msg {
 		if m.daemon == nil {
-			return downloadsMsg{}
+			return downloadsMsg{err: fmt.Errorf("daemon not running")}
 		}
-		items, err := m.daemon.Client().TellActive()
+		items, err := m.daemon.Client().TellDownloads()
 		return downloadsMsg{items: items, err: err}
 	}
 }
 
 func (m *Model) refreshBrowse() {
-	entries, _ := os.ReadDir(m.browseDir)
+	entries, err := os.ReadDir(m.browseDir)
+	if err != nil {
+		m.errMsg = err.Error()
+		entries = nil
+	} else {
+		m.errMsg = ""
+	}
 	items := []list.Item{browseItem{name: "..", dir: true}}
 	for _, e := range entries {
 		if e.IsDir() {
@@ -461,7 +511,7 @@ func (m *Model) refreshBrowse() {
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.Foreground(colorWhite)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.Foreground(colorMuted)
 	l := list.New(items, delegate, 50, 12)
-	l.Title = sectionStyle.Render("Browse: " + m.browseDir)
+	l.Title = sectionStyle.Render("Browse: " + sanitizeTerminalText(m.browseDir))
 	l.SetShowStatusBar(false)
 	m.browseList = l
 }
@@ -471,9 +521,72 @@ type browseItem struct {
 	dir  bool
 }
 
-func (b browseItem) Title() string       { return b.name }
+func (b browseItem) Title() string       { return sanitizeTerminalText(b.name) }
 func (b browseItem) Description() string { return "" }
-func (b browseItem) FilterValue() string { return b.name }
+func (b browseItem) FilterValue() string { return sanitizeTerminalText(b.name) }
+
+func (m *Model) clampDownloadSelection() {
+	if len(m.downloads) == 0 {
+		m.selectedDL = 0
+		return
+	}
+	if m.selectedDL < 0 {
+		m.selectedDL = 0
+	}
+	if m.selectedDL >= len(m.downloads) {
+		m.selectedDL = len(m.downloads) - 1
+	}
+}
+
+func (m Model) selectedDownload() (aria2.Status, bool) {
+	if m.selectedDL < 0 || m.selectedDL >= len(m.downloads) {
+		return aria2.Status{}, false
+	}
+	return m.downloads[m.selectedDL], true
+}
+
+func (m *Model) refreshDetail() {
+	if m.screen != ScreenDetail || m.detail.GID == "" {
+		return
+	}
+	for _, item := range m.downloads {
+		if item.GID == m.detail.GID {
+			m.detail = item
+			return
+		}
+	}
+	m.screen = ScreenActive
+	m.status = "Download is no longer available"
+}
+
+func downloadActionCmd(success string, action func() error) tea.Cmd {
+	return func() tea.Msg {
+		return actionMsg{success: success, err: action()}
+	}
+}
+
+func sanitizeKeyMsg(msg tea.KeyMsg) tea.KeyMsg {
+	if len(msg.Runes) == 0 {
+		return msg
+	}
+	runes := msg.Runes[:0]
+	for _, r := range msg.Runes {
+		if !unicode.IsControl(r) {
+			runes = append(runes, r)
+		}
+	}
+	msg.Runes = runes
+	return msg
+}
+
+func sanitizeTerminalText(value string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return '�'
+		}
+		return r
+	}, value)
+}
 
 func (m *Model) cleanup() {
 	if m.daemon != nil {
@@ -504,9 +617,9 @@ func (m Model) View() string {
 	}
 
 	if m.errMsg != "" {
-		b.WriteString("\n" + errStyle.Render(m.errMsg))
+		b.WriteString("\n" + errStyle.Render(sanitizeTerminalText(m.errMsg)))
 	} else if m.status != "" {
-		b.WriteString("\n" + okStyle.Render(m.status))
+		b.WriteString("\n" + okStyle.Render(sanitizeTerminalText(m.status)))
 	}
 	return renderTerminalScreen(b.String())
 }
@@ -527,7 +640,7 @@ func (m Model) viewNewDownload() string {
 		b.WriteString(m.urlInput.View())
 		b.WriteString("\n\n" + renderFooter("Enter", "next", "Esc", "menu"))
 	} else {
-		b.WriteString(helpStyle.Render("URL: ") + m.urlInput.Value() + "\n\n")
+		b.WriteString(helpStyle.Render("URL: ") + sanitizeTerminalText(m.urlInput.Value()) + "\n\n")
 		b.WriteString(m.destInput.View())
 		b.WriteString("\n\n" + renderFooter("B", "browse", "Enter", "start", "Esc", "menu"))
 	}
@@ -545,16 +658,16 @@ func (m Model) viewActive() string {
 			if i == m.selectedDL {
 				prefix = cursorStyle.Render(">") + " "
 			}
-			name := filepath.Base(d.Name)
+			name := sanitizeTerminalText(filepath.Base(d.Name))
 			if name == "" {
-				name = d.GID
+				name = sanitizeTerminalText(d.GID)
 			}
 			if i == m.selectedDL {
 				name = menuActive.Render(name)
 			}
 			bar := aria2.ProgressBar(d.Completed, d.Total, 20)
 			line := fmt.Sprintf("%s%s\n    %s  %s  ETA %s  %s\n",
-				prefix, name, bar, aria2.FormatSpeed(d.Speed), aria2.FormatETA(d.ETA), menuDescStyle.Render("["+d.Status+"]"))
+				prefix, name, bar, aria2.FormatSpeed(d.Speed), aria2.FormatETA(d.ETA), menuDescStyle.Render("["+sanitizeTerminalText(d.Status)+"]"))
 			b.WriteString(line)
 		}
 	}
@@ -566,7 +679,7 @@ func (m Model) viewDetail() string {
 	d := m.detail
 	return boxStyle.Render(fmt.Sprintf(
 		"GID: %s\nName: %s\nStatus: %s\nDir: %s\nProgress: %s / %s\nSpeed: %s\nETA: %s\n\nesc back",
-		d.GID, d.Name, d.Status, d.Dir,
+		sanitizeTerminalText(d.GID), sanitizeTerminalText(d.Name), sanitizeTerminalText(d.Status), sanitizeTerminalText(d.Dir),
 		aria2.FormatBytes(d.Completed), aria2.FormatBytes(d.Total),
 		aria2.FormatSpeed(d.Speed), aria2.FormatETA(d.ETA),
 	))
