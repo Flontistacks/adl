@@ -1,5 +1,5 @@
 .\" adl man page
-.Dd July 10, 2026
+.Dd July 18, 2026
 .Dt ADL 1
 .Os
 .Sh NAME
@@ -21,7 +21,7 @@ launches a local
 RPC daemon for the duration of the session.
 Downloads stop being managed when you quit
 .Nm ;
-the daemon is shut down and no background process remains.
+the daemon is shut down gracefully and no background process remains.
 .Pp
 Supported download sources:
 .Bl -bullet -compact
@@ -41,23 +41,23 @@ Open the interactive main menu.
 .It Cm adl Cm download
 Skip the menu and go directly to the new download flow.
 .It Cm adl Cm list
-Show active downloads with live progress bars.
+Show active, queued, and paused downloads with live progress bars.
 .It Cm adl Cm settings
 Open settings (default download folder, aria2c path).
 .El
 .Sh INTERACTIVE UI
-.SS Main menu
+.Ss Main menu
 .Bl -tag -width Ds
-.It Sy \(ua\(da / \(ua\(dv
+.It Sy Up / Down
 Navigate menu items
 .It Sy Enter
 Select item
-.It Sy ?
+.It Sy \&?
 Show help
 .It Sy Ctrl+c
-Quit
+Stop the daemon and quit
 .El
-.SS New download
+.Ss New download
 .Bl -tag -width Ds
 .It Sy Enter
 Confirm current step (URL, then destination)
@@ -72,7 +72,10 @@ The destination defaults to
 Paste a URL, magnet link, or path to a
 .Pa .torrent
 file; the type is detected automatically.
-.SS Active downloads
+.Ss Active downloads
+The list contains active, queued, and paused downloads.
+Paused downloads remain selectable so they can be resumed.
+The details screen refreshes while it is open.
 .Bl -tag -width Ds
 .It Sy j / k
 Select download
@@ -99,6 +102,19 @@ download_dir: ~/Downloads
 aria2_path: /opt/homebrew/bin/aria2c
 rpc_port: 6800
 .Ed
+.Sh SECURITY
+The aria2 RPC endpoint listens only on
+.Pa 127.0.0.1
+and uses a randomly generated secret for each session.
+The secret is never written to disk.
+.Pp
+Control characters in download names, paths, statuses, and RPC errors are
+neutralized before terminal rendering.
+.Pp
+On exit,
+.Nm
+first requests a graceful aria2 shutdown and uses a forced stop only if the
+daemon does not exit before the shutdown timeout.
 .Sh REQUIREMENTS
 .Bl -bullet -compact
 .It
@@ -119,7 +135,7 @@ Download a file directly:
 adl download
 .Ed
 .Pp
-View active downloads:
+View active, queued, and paused downloads:
 .Bd -literal -offset indent
 adl list
 .Ed

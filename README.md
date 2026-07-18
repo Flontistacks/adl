@@ -1,8 +1,10 @@
 # adl
 
+[![CI](https://github.com/Flontistacks/adl/actions/workflows/ci.yml/badge.svg)](https://github.com/Flontistacks/adl/actions/workflows/ci.yml)
+
 Terminal download manager for macOS — an interactive TUI around [aria2c](https://aria2.github.io/).
 
-`adl` gives you an interactive menu in the terminal to add downloads, watch live progress bars, and pause or cancel transfers. No GUI windows, no menu bar icon, no background daemon after you quit.
+`adl` gives you an interactive menu in the terminal to add downloads, watch live progress bars, and pause, resume, or cancel transfers. No GUI windows, no menu bar icon, no background daemon after you quit.
 
 ## Install
 
@@ -46,7 +48,7 @@ man adl          # full manual
 2. Paste a URL, magnet link, or path to a `.torrent` file
 3. Press `Enter` — destination defaults to `~/Downloads` (press `b` to browse folders)
 4. Press `Enter` again to start
-5. Watch progress under **Active Downloads**
+5. Watch progress under **Active Downloads**; queued and paused items remain visible there too
 
 Try a small test file:
 
@@ -59,9 +61,11 @@ https://proof.ovh.net/files/1Mb.dat
 - **Interactive TUI** — built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
 - **HTTP/HTTPS, magnet links, and `.torrent` files** — auto-detected from a single input field
 - **Live progress bars** — speed, percentage, and ETA while the TUI is open
-- **Download controls** — pause, resume, cancel, and view details
+- **Complete download list** — active, queued, and paused downloads stay visible
+- **Download controls** — pause, resume, cancel, and view live-updating details
 - **Folder browser** — pick a destination with `b` (default: `~/Downloads`)
-- **Session-scoped aria2c** — RPC daemon starts with the app and stops when you quit
+- **Session-scoped aria2c** — RPC daemon starts with the app and shuts down gracefully when you quit
+- **Safe terminal output** — control characters from download metadata are neutralized
 - **English UI** — menu, prompts, and help text
 - **No telemetry** — `adl` does not phone home; downloads go through aria2c only
 
@@ -71,7 +75,7 @@ https://proof.ovh.net/files/1Mb.dat
 |---------|-------------|
 | `adl` | Main menu |
 | `adl download` | New download flow |
-| `adl list` | Active downloads |
+| `adl list` | Active, queued, and paused downloads |
 | `adl settings` | Edit settings |
 | `adl --help` | Short CLI help |
 | `man adl` | Full manual |
@@ -96,6 +100,8 @@ https://proof.ovh.net/files/1Mb.dat
 | `Esc` | Back to menu |
 
 ### Active downloads
+
+This screen also keeps queued and paused downloads visible, so a paused item can always be selected and resumed.
 
 | Key | Action |
 |-----|--------|
@@ -134,9 +140,10 @@ The generated `scripts/adl.app` is intentionally not committed. It uses the `adl
 ## Security & privacy
 
 - **Local only** — aria2 RPC listens on `127.0.0.1` while `adl` is running
-- **No background process** — quitting the TUI stops the aria2c daemon
+- **No background process** — quitting the TUI gracefully stops the aria2c daemon
 - **No analytics** — no usage data sent to Flontistacks or third parties
 - **Per-session RPC secret** — random token generated each time you launch `adl`
+- **Terminal-safe metadata** — control characters in names, paths, statuses, and errors are neutralized before rendering
 - **Torrents & magnets** — peer-to-peer traffic is inherent to those protocols; use HTTPS when privacy matters
 
 ## Requirements
@@ -162,6 +169,13 @@ make install PREFIX=/usr/local      # Intel Mac
 ```
 
 **Requirements for building:** Go 1.25+
+
+Run the same core checks used by CI:
+
+```bash
+go test -race ./...
+go vet ./...
+```
 
 ## Project structure
 
