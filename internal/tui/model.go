@@ -131,10 +131,7 @@ func NewModel(cfg config.Config, start StartView) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		tea.EnterAltScreen,
-		tickCmd(),
-	)
+	return tickCmd()
 }
 
 func tickCmd() tea.Cmd {
@@ -487,7 +484,7 @@ func (m *Model) cleanup() {
 
 func (m Model) View() string {
 	if m.width == 0 {
-		return "Loading...\n"
+		return renderTerminalScreen("Loading...\n")
 	}
 	var b strings.Builder
 
@@ -511,7 +508,11 @@ func (m Model) View() string {
 	} else if m.status != "" {
 		b.WriteString("\n" + okStyle.Render(m.status))
 	}
-	return b.String()
+	return renderTerminalScreen(b.String())
+}
+
+func renderTerminalScreen(content string) string {
+	return "\x1b[H" + content + "\x1b[J"
 }
 
 func (m Model) viewNewDownload() string {
@@ -604,7 +605,7 @@ func Run(cfg config.Config, start StartView) error {
 	m := NewModel(cfg, start)
 	m.daemon = daemon
 
-	finalModel, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	finalModel, err := tea.NewProgram(m).Run()
 	if err != nil {
 		_ = daemon.Stop()
 		return err
